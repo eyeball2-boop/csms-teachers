@@ -1,0 +1,6 @@
+{
+  "name": "중학생 수업 향상도 관리 시스템",
+  "description": "중학교 학생들의 과목별 성적을 기록하고 시험별 학업 향상도를 시각화 및 분석하며 Google Sheets 및 Google Chat과 연동하는 학습 관리 솔루션입니다.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

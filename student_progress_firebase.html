@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>중학생 과목별 수업 향상도 분석 시스템 (Firebase DB 연동)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-light: #eef2ff;
+      --success: #10b981;
+      --success-light: #ecfdf5;
+      --warning: #f59e0b;
+      --warning-light: #fffbeb;
+      --danger: #ef4444;
+      --danger-light: #fef2f2;
+      --border: #e2e8f0;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 20px; line-height: 1.5; }
+    .container { max-width: 1300px; margin: 0 auto; }
+    
+    /* Header */
+    header {
+      background: #ffffff;
+      padding: 20px 24px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04);
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .logo-badge {
+      width: 44px; height: 44px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+    }
+    h1 { font-size: 20px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+    .sub-desc { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+    
+    .actions-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 16px; border-radius: 12px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; border: none;
+    }
+    .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2); }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-firebase { background: #ff9100; color: #fff; box-shadow: 0 2px 4px rgba(255, 145, 0, 0.2); }
+    .btn-firebase:hover { background: #e08100; }
+    .btn-outline { background: #fff; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: #f1f5f9; }
+    .badge { padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; }
+    .badge-success { background: var(--success-light); color: var(--success); }
+    .badge-primary { background: var(--primary-light); color: var(--primary); }
+    
+    /* Layout */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 980px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      background: #ffffff;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      padding: 18px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+      height: fit-content;
+    }
+    .sidebar-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 14px;
+    }
+    .search-box {
+      width: 100%; padding: 10px 14px;
+      border-radius: 12px; border: 1px solid var(--border);
+      font-size: 13px; margin-bottom: 12px;
+      background: #f8fafc;
+    }
+    .search-box:focus { outline: none; border-color: var(--primary); background: #fff; }
+    
+    .student-item {
+      padding: 12px 14px;
+      border-radius: 14px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+      display: flex; justify-content: space-between; align-items: center;
+      background: #fff;
+    }
+    .student-item:hover { background: #f8fafc; border-color: var(--border); }
+    .student-item.active {
+      background: var(--primary-light);
+      border-color: #c7d2fe;
+    }
+    .student-avatar {
+      width: 38px; height: 38px; border-radius: 12px;
+      background: #e2e8f0; display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 13px; color: #475569;
+    }
+    .student-item.active .student-avatar {
+      background: var(--primary); color: #fff;
+    }
+    
+    /* Content Area */
+    .content-area { display: flex; flex-direction: column; gap: 20px; }
+    .card {
+      background: #ffffff;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      padding: 24px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+    
+    /* Student Banner */
+    .student-banner {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 16px; margin-bottom: 20px;
+      padding-bottom: 16px; border-bottom: 1px solid #f1f5f9;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+    }
+    .stat-card.highlight {
+      background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+      border-color: #bbf7d0;
+    }
+    .stat-label { font-size: 13px; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
+    .stat-value { font-size: 26px; font-weight: 800; color: #0f172a; }
+    .stat-value.up { color: var(--success); }
+    .stat-value.down { color: var(--danger); }
+    
+    /* Tabs */
+    .tabs-bar {
+      display: flex; gap: 8px; margin-bottom: 16px;
+      background: #f1f5f9; padding: 4px; border-radius: 12px; width: fit-content;
+    }
+    .tab-btn {
+      padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      border: none; background: transparent; cursor: pointer; color: var(--text-muted);
+      transition: all 0.2s;
+    }
+    .tab-btn.active { background: #fff; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    
+    /* Tables */
+    .table-container { overflow-x: auto; margin-top: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: center; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+    th { background: #f8fafc; font-weight: 700; color: #475569; }
+    td.left { text-align: left; }
+    .grade-badge {
+      display: inline-block; width: 28px; height: 28px; line-height: 28px;
+      border-radius: 8px; font-weight: 800; font-size: 12px;
+    }
+    .grade-A { background: #dcfce7; color: #16a34a; }
+    .grade-B { background: #e0e7ff; color: #4338ca; }
+    .grade-C { background: #fef3c7; color: #d97706; }
+    .grade-D { background: #ffedd5; color: #ea580c; }
+    .grade-E { background: #fee2e2; color: #dc2626; }
+    
+    /* Modals */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center;
+      z-index: 100; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-card {
+      background: #fff; border-radius: 20px; max-width: 520px; width: 100%;
+      padding: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      max-height: 90vh; overflow-y: auto;
+    }
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #334155; }
+    .form-control {
+      width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px; font-size: 14px;
+    }
+    .form-control:focus { outline: none; border-color: var(--primary); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    
+    /* Status banner */
+    .db-status {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 9999px;
+      background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;
+    }
+    .db-status.connected {
+      background: #ecfdf5; color: #047857; border-color: #a7f3d0;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+    .pulse { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  </style>
+
+  <!-- Firebase v10 SDK Modules -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+    import {
+      getFirestore,
+      collection,
+      doc,
+      setDoc,
+      getDocs,
+      deleteDoc,
+      onSnapshot
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // User's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBGvHU-OoXEBF-4hIQXfFrncfY8G5JjPQo",
+      authDomain: "db-pracitce-c0c18.firebaseapp.com",
+      projectId: "db-pracitce-c0c18",
+      storageBucket: "db-pracitce-c0c18.firebasestorage.app",
+      messagingSenderId: "60361713564",
+      appId: "1:60361713564:web:bd058c53606c37e22dca59",
+      measurementId: "G-9C0Z5QTQ5T"
+    };
+
+    // Initialize Firebase
+    let app, analytics, db;
+    try {
+      app = initializeApp(firebaseConfig);
+      analytics = getAnalytics(app);
+      db = getFirestore(app);
+      window.firebaseApp = app;
+      window.firebaseDb = db;
+      document.getElementById('dbStatusBadge').className = 'db-status connected';
+      document.getElementById('dbStatusText').innerText = 'Firebase Firestore 연결됨 (' + firebaseConfig.projectId + ')';
+    } catch (e) {
+      console.warn("Firebase Init notice:", e);
+      document.getElementById('dbStatusBadge').className = 'db-status';
+      document.getElementById('dbStatusText').innerText = 'Firebase 오프라인 모드';
+    }
+
+    // Expose Firebase DB actions to global scope
+    window.saveAllStudentsToFirebase = async function() {
+      if (!db) {
+        alert("Firebase가 초기화되지 않았습니다.");
+        return;
+      }
+      try {
+        const btn = document.getElementById('saveToDbBtn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳ 저장 중...';
+        btn.disabled = true;
+
+        for (const s of window.currentStudents) {
+          await setDoc(doc(db, "middle_school_students", s.id), s);
+        }
+
+        btn.innerHTML = '✅ Firebase 저장 완료!';
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        }, 2000);
+        alert("학생 " + window.currentStudents.length + "명의 성적 및 향상도 데이터가 Firebase Firestore에 성공적으로 저장되었습니다!");
+      } catch (err) {
+        console.error("Firebase save error:", err);
+        alert("Firebase 저장 실패: " + err.message + "\n(Firestore 보안 규칙에서 읽기/쓰기가 허용되어 있는지 확인해주세요)");
+        document.getElementById('saveToDbBtn').disabled = false;
+      }
+    };
+
+    window.loadStudentsFromFirebase = async function() {
+      if (!db) {
+        alert("Firebase가 연결되지 않았습니다.");
+        return;
+      }
+      try {
+        const snapshot = await getDocs(collection(db, "middle_school_students"));
+        const loaded = [];
+        snapshot.forEach((d) => {
+          loaded.push(d.data());
+        });
+
+        if (loaded.length === 0) {
+          alert("Firebase Firestore('middle_school_students' 컬렉션)에 저장된 데이터가 없습니다. 먼저 현재 데이터를 [Firebase DB에 저장] 버튼으로 업로드해보세요!");
+          return;
+        }
+
+        window.currentStudents = loaded;
+        window.renderAll();
+        alert("Firebase DB에서 학생 " + loaded.length + "명의 데이터를 성공적으로 불러왔습니다!");
+      } catch (err) {
+        console.error("Firebase load error:", err);
+        alert("Firebase 불러오기 실패: " + err.message);
+      }
+    };
+  </script>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="brand">
+        <div class="logo-badge">🎓</div>
+        <div>
+          <h1>
+            중학생 과목별 수업 향상도 분석 시스템
+            <span class="badge badge-primary">중학 성취평가제</span>
+          </h1>
+          <div class="sub-desc">
+            과목별 지필·수행평가(A~E) 점수 추적 및 학업 향상도 시각화 대시보드
+          </div>
+        </div>
+      </div>
+
+      <div class="actions-bar">
+        <div id="dbStatusBadge" class="db-status connected">
+          <span class="dot pulse"></span>
+          <span id="dbStatusText">Firebase DB 연동 준비</span>
+        </div>
+
+        <button id="saveToDbBtn" class="btn btn-firebase" onclick="window.saveAllStudentsToFirebase()">
+          🔥 Firebase DB에 저장
+        </button>
+
+        <button class="btn btn-outline" onclick="window.loadStudentsFromFirebase()">
+          🔄 Firebase에서 불러오기
+        </button>
+
+        <button class="btn btn-primary" onclick="openAddStudentModal()">
+          + 학생 등록
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <div class="main-grid">
+      <!-- Left Sidebar: Student List -->
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <h3 style="font-size: 15px; font-weight: 800;">👥 학생 명단 (<span id="studentCountBadge">0</span>)</h3>
+          <span style="font-size: 12px; color: var(--text-muted);" id="avgClassDelta">+0점</span>
+        </div>
+
+        <input
+          type="text"
+          id="studentSearchInput"
+          placeholder="학생 이름 검색..."
+          class="search-box"
+          oninput="renderStudentList()"
+        />
+
+        <div id="studentListContainer"></div>
+      </div>
+
+      <!-- Right Content: Detailed Analysis & Charts -->
+      <div class="content-area">
+        <div class="card">
+          <!-- Student Banner -->
+          <div class="student-banner">
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <h2 id="currentStudentName" style="font-size: 24px; font-weight: 800; color: #0f172a;">학생명</h2>
+                <span id="currentStudentClassInfo" class="badge badge-primary">2학년 3반 14번</span>
+              </div>
+              <p id="currentStudentGoal" style="font-size: 13px; color: #4338ca; margin-top: 4px; font-weight: 600;">
+                🎯 목표: 수학 90점 돌파
+              </p>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-primary" onclick="openScoreEntryModal()">
+                + 시험 성적 입력 / 수정
+              </button>
+              <button class="btn btn-outline" onclick="deleteCurrentStudent()">
+                학생 삭제
+              </button>
+            </div>
+          </div>
+
+          <!-- Stats 4-Grid -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-label">1학기 중간고사 평점</div>
+              <div class="stat-value" id="statInitialAvg">0.0점</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">최근 시험 종합 평균</div>
+              <div class="stat-value" id="statCurrentAvg">0.0점</div>
+            </div>
+            <div class="stat-card highlight">
+              <div class="stat-label">종합 향상도 (Δ 점수)</div>
+              <div class="stat-value up" id="statOverallDelta">+0.0점</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">🌟 최고 성장 MVP 과목</div>
+              <div class="stat-value" id="statTopSubject" style="font-size: 20px; color: #4338ca;">-</div>
+            </div>
+          </div>
+
+          <!-- Charts Section -->
+          <div style="margin-top: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+              <h3 style="font-size: 16px; font-weight: 800;">📊 과목별 학업 향상도 시각화 차트</h3>
+              
+              <div class="tabs-bar">
+                <button class="tab-btn active" id="tabLine" onclick="switchChartTab('line')">📈 성적 추이</button>
+                <button class="tab-btn" id="tabBar" onclick="switchChartTab('bar')">📊 과목별 향상도(Δ)</button>
+                <button class="tab-btn" id="tabRadar" onclick="switchChartTab('radar')">🕸️ 역량 다이어그램</button>
+              </div>
+            </div>
+
+            <!-- Chart Display Box -->
+            <div id="chartContainer" style="min-height: 280px; display: flex; align-items: center; justify-content: center; background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 16px;">
+            </div>
+          </div>
+
+          <!-- Detailed Score Matrix Table -->
+          <div style="margin-top: 32px;">
+            <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 12px;">
+              📝 과목별 지필·수행평가 성적 상세표 (성취도 A~E 체계)
+            </h3>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr id="matrixHeaderRow"></tr>
+                </thead>
+                <tbody id="matrixTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Teacher Guidance Feedback Box -->
+          <div style="margin-top: 24px; padding: 18px; border-radius: 16px; background: #f8fafc; border: 1px solid var(--border);">
+            <div style="font-weight: 800; font-size: 14px; margin-bottom: 6px; color: #1e293b; display: flex; align-items: center; gap: 6px;">
+              💡 담당 교사 종합 학업 성장 분석 & 지도 조언
+            </div>
+            <p id="teacherGuidanceText" style="font-size: 13px; color: #475569; line-height: 1.7;"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Score Entry -->
+  <div id="scoreModal" class="modal-overlay">
+    <div class="modal-card">
+      <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 14px;">📝 시험 성적 입력 및 수정</h3>
+      
+      <div class="form-group">
+        <label class="form-label">시험 차수</label>
+        <select id="modalTermSelect" class="form-control" onchange="loadScoresForSelectedTerm()">
+          <option value="1-mid">1학기 중간고사</option>
+          <option value="1-final">1학기 기말고사</option>
+          <option value="2-mid">2학기 중간고사</option>
+          <option value="2-final" selected>2학기 기말고사</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">시험 일자</label>
+        <input type="date" id="modalExamDate" class="form-control" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">과목별 점수 (0 ~ 100점)</label>
+        <div class="grid-2" id="scoreInputsContainer"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">교사 피드백 메모</label>
+        <input type="text" id="modalFeedbackNote" placeholder="예: 수학 서술형 문항 해결력 대폭 향상" class="form-control" />
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+        <button class="btn btn-outline" onclick="closeModal('scoreModal')">취소</button>
+        <button class="btn btn-primary" onclick="saveScoresFromModal()">저장하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add Student -->
+  <div id="studentModal" class="modal-overlay">
+    <div class="modal-card">
+      <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 14px;">👤 신규 학생 등록</h3>
+      
+      <div class="form-group">
+        <label class="form-label">학생 이름 *</label>
+        <input type="text" id="newStudentName" placeholder="예: 김민준" class="form-control" />
+      </div>
+
+      <div class="grid-3 form-group">
+        <div>
+          <label class="form-label">학년</label>
+          <select id="newStudentGrade" class="form-control">
+            <option value="1">1학년</option>
+            <option value="2" selected>2학년</option>
+            <option value="3">3학년</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">반</label>
+          <input type="number" id="newStudentClass" value="3" class="form-control" />
+        </div>
+        <div>
+          <label class="form-label">번호</label>
+          <input type="number" id="newStudentNumber" value="1" class="form-control" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">학업 목표</label>
+        <input type="text" id="newStudentGoal" placeholder="예: 수학 90점 이상 및 성취도 A 진입" class="form-control" />
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+        <button class="btn btn-outline" onclick="closeModal('studentModal')">취소</button>
+        <button class="btn btn-primary" onclick="saveNewStudent()">등록하기</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Constants
+    const SUBJECTS = [
+      { id: 'korean', name: '국어', color: '#3b82f6' },
+      { id: 'math', name: '수학', color: '#8b5cf6' },
+      { id: 'english', name: '영어', color: '#06b6d4' },
+      { id: 'science', name: '과학', color: '#10b981' },
+      { id: 'social', name: '사회·역사', color: '#f59e0b' },
+      { id: 'ethics', name: '도덕', color: '#ec4899' },
+      { id: 'tech_home', name: '기술·가정', color: '#64748b' }
+    ];
+
+    const TERMS = [
+      { id: '1-mid', name: '1학기 중간고사', short: '1-중간' },
+      { id: '1-final', name: '1학기 기말고사', short: '1-기말' },
+      { id: '2-mid', name: '2학기 중간고사', short: '2-중간' },
+      { id: '2-final', name: '2학기 기말고사', short: '2-기말' }
+    ];
+
+    // Initial Sample Students
+    const INITIAL_STUDENTS = [
+      {
+        id: 'std-1',
+        name: '김민준',
+        grade: 2,
+        classroom: 3,
+        number: 14,
+        targetGoal: '수학 90점 돌파 및 성취도 A 진입!',
+        records: [
+          { termId: '1-mid', scores: { korean: 78, math: 68, english: 74, science: 72, social: 80, ethics: 85, tech_home: 82 }, date: '2026-05-02', feedback: '개념 정리 필요' },
+          { termId: '1-final', scores: { korean: 82, math: 76, english: 78, science: 79, social: 84, ethics: 88, tech_home: 86 }, date: '2026-07-08', feedback: '수학 서술형 보완' },
+          { termId: '2-mid', scores: { korean: 86, math: 85, english: 84, science: 88, social: 87, ethics: 92, tech_home: 90 }, date: '2026-10-04', feedback: '수학 80점대 안착' },
+          { termId: '2-final', scores: { korean: 89, math: 93, english: 88, science: 94, social: 90, ethics: 95, tech_home: 92 }, date: '2026-12-16', feedback: '수학 93점 성취도 A 달성!' }
+        ]
+      },
+      {
+        id: 'std-2',
+        name: '이서연',
+        grade: 2,
+        classroom: 3,
+        number: 7,
+        targetGoal: '과학 및 영어 성취도 A 유지, 국어 어휘력 보강',
+        records: [
+          { termId: '1-mid', scores: { korean: 84, math: 88, english: 90, science: 78, social: 86, ethics: 90, tech_home: 88 }, date: '2026-05-02' },
+          { termId: '1-final', scores: { korean: 86, math: 90, english: 92, science: 86, social: 88, ethics: 92, tech_home: 90 }, date: '2026-07-08' },
+          { termId: '2-mid', scores: { korean: 88, math: 92, english: 95, science: 91, social: 90, ethics: 94, tech_home: 91 }, date: '2026-10-04' },
+          { termId: '2-final', scores: { korean: 91, math: 95, english: 98, science: 96, social: 94, ethics: 98, tech_home: 95 }, date: '2026-12-16' }
+        ]
+      },
+      {
+        id: 'std-3',
+        name: '박도윤',
+        grade: 2,
+        classroom: 3,
+        number: 21,
+        targetGoal: '사회·역사 흐름 잡기 및 수학 응용력 기르기',
+        records: [
+          { termId: '1-mid', scores: { korean: 72, math: 64, english: 68, science: 70, social: 60, ethics: 78, tech_home: 80 }, date: '2026-05-02' },
+          { termId: '1-final', scores: { korean: 75, math: 69, english: 72, science: 74, social: 71, ethics: 82, tech_home: 82 }, date: '2026-07-08' },
+          { termId: '2-mid', scores: { korean: 81, math: 75, english: 79, science: 80, social: 82, ethics: 85, tech_home: 84 }, date: '2026-10-04' },
+          { termId: '2-final', scores: { korean: 85, math: 80, english: 83, science: 84, social: 88, ethics: 88, tech_home: 87 }, date: '2026-12-16' }
+        ]
+      }
+    ];
+
+    // State
+    window.currentStudents = JSON.parse(localStorage.getItem('fb_students') || 'null') || INITIAL_STUDENTS;
+    let selectedStudentIndex = 0;
+    let currentChartTab = 'line';
+
+    function getGrade(score) {
+      if (score >= 90) return 'A';
+      if (score >= 80) return 'B';
+      if (score >= 70) return 'C';
+      if (score >= 60) return 'D';
+      return 'E';
+    }
+
+    function calculateAverage(record) {
+      if (!record || !record.scores) return 0;
+      const vals = Object.values(record.scores);
+      if (vals.length === 0) return 0;
+      return Number((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1));
+    }
+
+    // Render Student List
+    function renderStudentList() {
+      const container = document.getElementById('studentListContainer');
+      const search = document.getElementById('studentSearchInput').value.toLowerCase();
+      container.innerHTML = '';
+
+      let totalClassDelta = 0;
+
+      window.currentStudents.forEach((student, idx) => {
+        const first = student.records[0];
+        const last = student.records[student.records.length - 1];
+        const fAvg = calculateAverage(first);
+        const lAvg = calculateAverage(last);
+        const delta = Number((lAvg - fAvg).toFixed(1));
+        totalClassDelta += delta;
+
+        if (search && !student.name.toLowerCase().includes(search)) return;
+
+        const item = document.createElement('div');
+        item.className = 'student-item' + (idx === selectedStudentIndex ? ' active' : '');
+        item.onclick = () => {
+          selectedStudentIndex = idx;
+          renderAll();
+        };
+
+        const deltaColor = delta > 0 ? '#10b981' : delta < 0 ? '#ef4444' : '#64748b';
+        const deltaSymbol = delta > 0 ? '+' : '';
+
+        item.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="student-avatar">${student.name.slice(0, 2)}</div>
+            <div>
+              <div style="font-weight: 700; font-size: 14px;">${student.name}</div>
+              <div style="font-size: 12px; color: var(--text-muted);">${student.grade}학년 ${student.classroom}반 ${student.number}번</div>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-weight: 800; font-size: 13px; color: ${deltaColor};">${deltaSymbol}${delta}점</div>
+            <div style="font-size: 11px; color: #64748b;">평균 ${lAvg}점</div>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+
+      document.getElementById('studentCountBadge').innerText = window.currentStudents.length + '명';
+      const avgDeltaVal = (totalClassDelta / Math.max(1, window.currentStudents.length)).toFixed(1);
+      document.getElementById('avgClassDelta').innerText = '반 평균 향상: +' + avgDeltaVal + '점';
+    }
+
+    // Render Details
+    function renderStudentDetail() {
+      const student = window.currentStudents[selectedStudentIndex];
+      if (!student) return;
+
+      document.getElementById('currentStudentName').innerText = student.name;
+      document.getElementById('currentStudentClassInfo').innerText = student.grade + '학년 ' + student.classroom + '반 ' + student.number + '번';
+      document.getElementById('currentStudentGoal').innerText = '🎯 목표: ' + (student.targetGoal || '성적 향상 및 균형 잡힌 학업 성취');
+
+      const firstRec = student.records[0];
+      const lastRec = student.records[student.records.length - 1];
+      const firstAvg = calculateAverage(firstRec);
+      const lastAvg = calculateAverage(lastRec);
+      const totalDelta = Number((lastAvg - firstAvg).toFixed(1));
+
+      document.getElementById('statInitialAvg').innerText = firstAvg + '점';
+      document.getElementById('statCurrentAvg').innerText = lastAvg + '점';
+      document.getElementById('statOverallDelta').innerText = (totalDelta >= 0 ? '+' : '') + totalDelta + '점';
+      document.getElementById('statOverallDelta').className = 'stat-value ' + (totalDelta >= 0 ? 'up' : 'down');
+
+      // Find top improved subject
+      let maxDelta = -999;
+      let topSubject = '없음';
+      SUBJECTS.forEach((sub) => {
+        const fromScore = firstRec ? (firstRec.scores[sub.id] || 0) : 0;
+        const toScore = lastRec ? (lastRec.scores[sub.id] || 0) : 0;
+        const diff = toScore - fromScore;
+        if (diff > maxDelta) {
+          maxDelta = diff;
+          topSubject = sub.name + ' (+' + diff + '점)';
+        }
+      });
+      document.getElementById('statTopSubject').innerText = topSubject;
+
+      // Render Matrix Table
+      renderScoreTable(student);
+
+      // Render Active Chart
+      renderChart(student);
+
+      // Teacher commentary
+      let commentary = `${student.name} 학생은 시작 시험(평균 ${firstAvg}점) 대비 최근 시험(평균 ${lastAvg}점)에서 종합 성적이 `;
+      if (totalDelta > 0) {
+        commentary += `총 +${totalDelta}점 대폭 향상되어 매우 성실하고 자기주도적인 학습 태도를 증명하고 있습니다. `;
+      } else {
+        commentary += `유사한 성적대를 유지하고 있으며 취약 단원에 대한 집중 보강이 권장됩니다. `;
+      }
+      commentary += `특히 [${topSubject}]에서 가장 돋보이는 성장을 이루어냈으며, ${student.targetGoal ? `설정한 목표("${student.targetGoal}")를 향해 순항하고 있습니다.` : '꾸준한 성장이 기대됩니다.'}`;
+      document.getElementById('teacherGuidanceText').innerText = commentary;
+    }
+
+    // Render Matrix Score Table
+    function renderScoreTable(student) {
+      const headerRow = document.getElementById('matrixHeaderRow');
+      headerRow.innerHTML = '<th class="left">교과목</th>' + student.records.map(r => {
+        const t = TERMS.find(x => x.id === r.termId);
+        return '<th>' + (t ? t.name : r.termId) + '</th>';
+      }).join('') + '<th style="background:#eef2ff; color:#4338ca;">총 향상도(Δ)</th><th>성취도</th>';
+
+      const tbody = document.getElementById('matrixTableBody');
+      tbody.innerHTML = '';
+
+      const firstRec = student.records[0];
+      const lastRec = student.records[student.records.length - 1];
+
+      SUBJECTS.forEach(sub => {
+        const tr = document.createElement('tr');
+        const startScore = firstRec ? (firstRec.scores[sub.id] ?? '-') : '-';
+        const endScore = lastRec ? (lastRec.scores[sub.id] ?? '-') : '-';
+        const delta = (typeof startScore === 'number' && typeof endScore === 'number') ? (endScore - startScore) : 0;
+        const grade = typeof endScore === 'number' ? getGrade(endScore) : '-';
+
+        let rowHtml = `<td class="left" style="font-weight:700;"><span style="color:${sub.color}">●</span> ${sub.name}</td>`;
+        student.records.forEach(r => {
+          const sc = r.scores[sub.id];
+          rowHtml += `<td>${sc !== undefined ? sc + '점' : '-'}</td>`;
+        });
+
+        const deltaColor = delta > 0 ? '#10b981' : delta < 0 ? '#ef4444' : '#64748b';
+        rowHtml += `<td style="font-weight:800; color:${deltaColor}; background:#f5f7ff;">${delta > 0 ? '+' : ''}${delta}점</td>`;
+        rowHtml += `<td><span class="grade-badge grade-${grade}">${grade}</span></td>`;
+
+        tr.innerHTML = rowHtml;
+        tbody.appendChild(tr);
+      });
+
+      // Average Row
+      const avgTr = document.createElement('tr');
+      avgTr.style.background = '#f8fafc';
+      avgTr.style.fontWeight = '800';
+      let avgHtml = `<td class="left">시험별 평균</td>`;
+      student.records.forEach(r => {
+        avgHtml += `<td style="color:#4338ca;">${calculateAverage(r)}점</td>`;
+      });
+      const firstAvg = calculateAverage(firstRec);
+      const lastAvg = calculateAverage(lastRec);
+      const dAvg = Number((lastAvg - firstAvg).toFixed(1));
+      avgHtml += `<td style="background:#eef2ff; color:#4338ca; font-size:15px;">${dAvg >= 0 ? '+' : ''}${dAvg}점</td><td>-</td>`;
+      avgTr.innerHTML = avgHtml;
+      tbody.appendChild(avgTr);
+    }
+
+    // Chart Renderer
+    function renderChart(student) {
+      const area = document.getElementById('chartContainer');
+      const w = 720;
+      const h = 260;
+
+      if (currentChartTab === 'line') {
+        const pad = { top: 20, right: 30, bottom: 40, left: 45 };
+        const innerW = w - pad.left - pad.right;
+        const innerH = h - pad.top - pad.bottom;
+        const numTerms = student.records.length;
+
+        let svg = `<svg viewBox="0 0 ${w} ${h}" style="width:100%; height:auto;">`;
+
+        // Y Guidelines
+        [0, 20, 40, 60, 80, 90, 100].forEach(sc => {
+          const y = pad.top + innerH - (sc / 100) * innerH;
+          svg += `<line x1="${pad.left}" y1="${y}" x2="${w - pad.right}" y2="${y}" stroke="${sc === 90 ? '#bbf7d0' : '#f1f5f9'}" stroke-width="${sc === 90 ? 2 : 1}"/>`;
+          svg += `<text x="${pad.left - 8}" y="${y + 4}" fill="#94a3b8" font-size="11" text-anchor="end">${sc}</text>`;
+        });
+
+        // X Axis labels
+        student.records.forEach((r, idx) => {
+          const t = TERMS.find(x => x.id === r.termId);
+          const x = pad.left + (idx / Math.max(1, numTerms - 1)) * innerW;
+          svg += `<text x="${x}" y="${h - 12}" fill="#475569" font-size="12" font-weight="600" text-anchor="middle">${t ? t.short : r.termId}</text>`;
+        });
+
+        // Lines for subjects
+        SUBJECTS.forEach(sub => {
+          const pts = student.records.map((r, idx) => {
+            const sc = r.scores[sub.id] || 0;
+            const x = pad.left + (idx / Math.max(1, numTerms - 1)) * innerW;
+            const y = pad.top + innerH - (sc / 100) * innerH;
+            return { x, y, sc };
+          });
+
+          if (pts.length > 1) {
+            const pathD = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p.x + ' ' + p.y).join(' ');
+            svg += `<path d="${pathD}" fill="none" stroke="${sub.color}" stroke-width="2.5" stroke-linecap="round"/>`;
+          }
+          pts.forEach(p => {
+            svg += `<circle cx="${p.x}" cy="${p.y}" r="4.5" fill="#fff" stroke="${sub.color}" stroke-width="2.5"/>`;
+          });
+        });
+
+        svg += `</svg>`;
+        area.innerHTML = svg;
+      } else if (currentChartTab === 'bar') {
+        // Delta Bar Chart
+        const firstRec = student.records[0];
+        const lastRec = student.records[student.records.length - 1];
+
+        let html = '<div style="width:100%; max-width:600px; display:flex; flex-direction:column; gap:10px;">';
+        SUBJECTS.forEach(sub => {
+          const startSc = firstRec ? (firstRec.scores[sub.id] || 0) : 0;
+          const endSc = lastRec ? (lastRec.scores[sub.id] || 0) : 0;
+          const diff = endSc - startSc;
+          const barW = Math.min(100, Math.max(8, Math.abs(diff) * 4));
+          const color = diff > 0 ? '#10b981' : diff < 0 ? '#ef4444' : '#94a3b8';
+
+          html += `
+            <div style="display:flex; align-items:center; gap:12px; font-size:13px;">
+              <span style="width:70px; font-weight:700;">${sub.name}</span>
+              <div style="flex:1; background:#f1f5f9; height:24px; border-radius:8px; overflow:hidden; display:flex; align-items:center; padding:0 8px;">
+                <div style="height:14px; border-radius:4px; width:${barW}%; background:${color};"></div>
+                <span style="font-size:12px; font-weight:600; margin-left:8px; color:#475569;">${startSc}점 ➡️ ${endSc}점</span>
+              </div>
+              <span style="width:65px; text-align:right; font-weight:800; color:${color};">${diff > 0 ? '+' : ''}${diff}점 🚀</span>
+            </div>
+          `;
+        });
+        html += '</div>';
+        area.innerHTML = html;
+      } else if (currentChartTab === 'radar') {
+        // Radar Chart
+        const cx = 360, cy = 130, radius = 95;
+        const total = SUBJECTS.length;
+        const angles = SUBJECTS.map((_, i) => (i * 2 * Math.PI) / total - Math.PI / 2);
+
+        let svg = `<svg viewBox="0 0 720 260" style="width:100%; height:auto;">`;
+
+        // Concentric webs
+        [0.25, 0.5, 0.75, 1.0].forEach(ratio => {
+          const poly = angles.map(a => {
+            const x = cx + ratio * radius * Math.cos(a);
+            const y = cy + ratio * radius * Math.sin(a);
+            return `${x},${y}`;
+          }).join(' ');
+          svg += `<polygon points="${poly}" fill="none" stroke="#e2e8f0" stroke-dasharray="3 3"/>`;
+        });
+
+        // Axis
+        angles.forEach((a, i) => {
+          const x2 = cx + radius * Math.cos(a);
+          const y2 = cy + radius * Math.sin(a);
+          const tx = cx + (radius + 20) * Math.cos(a);
+          const ty = cy + (radius + 20) * Math.sin(a);
+          svg += `<line x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}" stroke="#e2e8f0"/>`;
+          svg += `<text x="${tx}" y="${ty + 4}" font-size="11" font-weight="700" fill="#475569" text-anchor="middle">${SUBJECTS[i].name}</text>`;
+        });
+
+        // Current scores polygon
+        const lastRec = student.records[student.records.length - 1];
+        if (lastRec) {
+          const polyPoints = angles.map((a, i) => {
+            const sc = lastRec.scores[SUBJECTS[i].id] || 0;
+            const r = (sc / 100) * radius;
+            const x = cx + r * Math.cos(a);
+            const y = cy + r * Math.sin(a);
+            return `${x},${y}`;
+          }).join(' ');
+          svg += `<polygon points="${polyPoints}" fill="#10b981" fill-opacity="0.35" stroke="#059669" stroke-width="2.5"/>`;
+        }
+
+        svg += `</svg>`;
+        area.innerHTML = svg;
+      }
+    }
+
+    function switchChartTab(tab) {
+      currentChartTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      if (tab === 'line') document.getElementById('tabLine').classList.add('active');
+      if (tab === 'bar') document.getElementById('tabBar').classList.add('active');
+      if (tab === 'radar') document.getElementById('tabRadar').classList.add('active');
+      renderChart(window.currentStudents[selectedStudentIndex]);
+    }
+
+    // Modal helpers
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    function openScoreEntryModal() {
+      const student = window.currentStudents[selectedStudentIndex];
+      const container = document.getElementById('scoreInputsContainer');
+      container.innerHTML = '';
+
+      SUBJECTS.forEach(sub => {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = `
+          <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;">${sub.name}</label>
+          <input type="number" min="0" max="100" id="input_score_${sub.id}" class="form-control" style="font-weight:700;" value="80" />
+        `;
+        container.appendChild(wrap);
+      });
+
+      document.getElementById('modalExamDate').value = new Date().toISOString().slice(0, 10);
+      loadScoresForSelectedTerm();
+      openModal('scoreModal');
+    }
+
+    function loadScoresForSelectedTerm() {
+      const student = window.currentStudents[selectedStudentIndex];
+      const termId = document.getElementById('modalTermSelect').value;
+      const rec = student.records.find(r => r.termId === termId);
+
+      if (rec) {
+        SUBJECTS.forEach(sub => {
+          const el = document.getElementById(`input_score_${sub.id}`);
+          if (el) el.value = rec.scores[sub.id] ?? 80;
+        });
+        document.getElementById('modalExamDate').value = rec.date || new Date().toISOString().slice(0, 10);
+        document.getElementById('modalFeedbackNote').value = rec.feedback || '';
+      }
+    }
+
+    function saveScoresFromModal() {
+      const student = window.currentStudents[selectedStudentIndex];
+      const termId = document.getElementById('modalTermSelect').value;
+      const date = document.getElementById('modalExamDate').value;
+      const feedback = document.getElementById('modalFeedbackNote').value;
+
+      const newScores = {};
+      SUBJECTS.forEach(sub => {
+        const val = parseInt(document.getElementById(`input_score_${sub.id}`).value, 10) || 0;
+        newScores[sub.id] = Math.max(0, Math.min(100, val));
+      });
+
+      const existingIdx = student.records.findIndex(r => r.termId === termId);
+      if (existingIdx >= 0) {
+        student.records[existingIdx] = { termId, scores: newScores, date, feedback };
+      } else {
+        student.records.push({ termId, scores: newScores, date, feedback });
+        student.records.sort((a, b) => {
+          const oA = TERMS.findIndex(t => t.id === a.termId);
+          const oB = TERMS.findIndex(t => t.id === b.termId);
+          return oA - oB;
+        });
+      }
+
+      localStorage.setItem('fb_students', JSON.stringify(window.currentStudents));
+      closeModal('scoreModal');
+      renderAll();
+      alert("성적이 성공적으로 저장되었습니다. [Firebase DB에 저장] 버튼을 누르면 클라우드 Firestore에도 영구 동기화됩니다!");
+    }
+
+    function openAddStudentModal() {
+      document.getElementById('newStudentName').value = '';
+      document.getElementById('newStudentGoal').value = '';
+      openModal('studentModal');
+    }
+
+    function saveNewStudent() {
+      const name = document.getElementById('newStudentName').value.trim();
+      if (!name) return;
+      const grade = parseInt(document.getElementById('newStudentGrade').value, 10) || 2;
+      const classroom = parseInt(document.getElementById('newStudentClass').value, 10) || 1;
+      const number = parseInt(document.getElementById('newStudentNumber').value, 10) || 1;
+      const targetGoal = document.getElementById('newStudentGoal').value.trim() || '전과목 성취도 A 달성';
+
+      const newStudent = {
+        id: 'std-' + Date.now(),
+        name,
+        grade,
+        classroom,
+        number,
+        targetGoal,
+        records: [
+          {
+            termId: '1-mid',
+            date: new Date().toISOString().slice(0, 10),
+            scores: { korean: 75, math: 70, english: 75, science: 72, social: 78, ethics: 80, tech_home: 80 },
+            feedback: '첫 시험 기록'
+          }
+        ]
+      };
+
+      window.currentStudents.push(newStudent);
+      selectedStudentIndex = window.currentStudents.length - 1;
+      localStorage.setItem('fb_students', JSON.stringify(window.currentStudents));
+      closeModal('studentModal');
+      renderAll();
+    }
+
+    function deleteCurrentStudent() {
+      const student = window.currentStudents[selectedStudentIndex];
+      if (!student) return;
+      if (!confirm(`${student.name} 학생 데이터를 정말 삭제하시겠습니까?`)) return;
+
+      window.currentStudents.splice(selectedStudentIndex, 1);
+      if (selectedStudentIndex >= window.currentStudents.length) {
+        selectedStudentIndex = Math.max(0, window.currentStudents.length - 1);
+      }
+      localStorage.setItem('fb_students', JSON.stringify(window.currentStudents));
+      renderAll();
+    }
+
+    function renderAll() {
+      renderStudentList();
+      renderStudentDetail();
+    }
+
+    // Initialize
+    renderAll();
+  </script>
+</body>
+</html>
